@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Mining Software Repositories study: do AI coding agents that open GitHub PRs obey the rules written in the repo's agent context files (AGENTS.md, CLAUDE.md, copilot-instructions.md, .cursorrules)? Full study design (RQ1–RQ4, causal design, P1=2025/AIDev vs P2=2026/self-mined, threats to validity) is in `../project-details.md` (outside this git repo). The rules currently checked, and the label semantics, are in `rules.md`.
 
-Current state: only RQ1 on P1 (AIDev) is implemented.
+Current state: RQ1, RQ2 (`rq2.ipynb`) and RQ3 (`rq3.ipynb`) on P1 (AIDev) are implemented; RQ2/RQ3 notebooks exec `fetch_data.ipynb` up to its section 8.
 
 ## Commands
 
@@ -21,7 +21,7 @@ There is no test suite, linter config, or CLI yet (`ess_msr:main` is a placehold
 
 ## Architecture
 
-All logic lives in one notebook: `src/ess_msr/fetch_data.ipynb`. Run it top to bottom; relative paths (`../../instruction-data`, `../../package_manager_violations.csv`) assume the notebook's own directory as CWD.
+The RQ1 pipeline lives in `src/ess_msr/fetch_data.ipynb`; `rq2.ipynb` and `rq3.ipynb` build on it. Run notebooks top to bottom; relative paths (`../../instruction-data`, `../../package_manager_violations.csv`) assume the notebook's own directory as CWD.
 
 Pipeline:
 1. **Load** AIDev PRs straight from Hugging Face (`hf://datasets/hao-li/AIDev@v4`, parquet via pandas) and GHAgentFiles context-file history from `instruction-data/context_metadata.csv`. Repo names are lowercased to join the two; symlinked context files are dropped.
