@@ -9,7 +9,9 @@
 | RQ1 pipeline + výsledky | `src/ess_msr/fetch_data.ipynb` (sekcie 1–9) |
 | RQ2 analýza | `src/ess_msr/rq2.ipynb` (reuse RQ1 pipeline, sekcie 1–8) |
 | RQ3 analýza | `src/ess_msr/rq3.ipynb` (reuse RQ1 pipeline, sekcie 1–7) |
-| Ručná kontrola package-manager porušení | `package_manager_violations.csv` (23 riadkov, stĺpec `correct` je zatiaľ prázdny) |
+| Ručná kontrola package-manager porušení | `package_manager_violations.csv` (23 riadkov, vyplnené `correct` + `note`) |
+| Ručná validácia 100 párov (PR, pravidlo) | `validation_sample.csv` (`rule_correct`, `label_correct`, `note`) |
+| Overenie opravených checkerov (30 nových porušení) | `validation_sample_v2.csv` (`label_final` = label finálneho checkera) |
 | Dáta GHAgentFiles | `instruction-data/` (AIDev sa ťahá z Hugging Face) |
 
 ## Dáta
@@ -33,7 +35,12 @@ Takto to znie v AGENTS.md / CLAUDE.md (reálne citáty z dát):
 
 Ako to kontrolujeme:
 - Pravidlo sa uplatní iba na PR, ktoré zmenili zdrojový kód (`.py`, `.ts`, `.java`, ...). PR, ktoré menia len dokumentáciu, dostanú `not_applicable`.
-- `complied` = PR zmenil aj changelog (`CHANGELOG.md`, `docs/changelog/...`, `.changeset/*.md`).
+- Pravidlo sa musí týkať daného PR (rozsah pravidla, pozri `rules.md`):
+  - riadky v sekcii o release/publish, podmienené riadky („if applicable“, „if the user asks“) a odkazy na `/changelog/` stránky za pravidlo nepovažujeme;
+  - druh PR určíme z titulku (`feat`/Add… = feature, `fix`/Fix… = fix, docs, iné). Pravidlo „pre nové funkcie“ alebo „pre významné zmeny“ sa uplatní len na feature PR, pri zmienke o bugoch aj na fix PR. Docs-only PR sú `not_applicable`;
+  - pravidlo pre konkrétny jazyk („unit tests for new Python functions“) sa uplatní len ak PR mení súbory toho jazyka.
+  - pravidlo „whenever `foo.py` is modified“ sa uplatní len ak sa `foo.py` zmenil.
+- `complied` = PR zmenil aj changelog (`CHANGELOG.md`, `docs/changelog/...`, `.changeset/*.md`, alebo `README.md`, ak pravidlo hovorí, že changelog je tam).
 - `violated` = PR zmenil kód, ale changelog nie.
 
 Príklad:
@@ -54,7 +61,11 @@ Takto to znie v context file (reálne citáty):
 
 Ako to kontrolujeme:
 - Uplatní sa iba na PR, ktoré zmenili zdrojový kód.
-- `complied` = PR zmenil aj aspoň jeden testový súbor (`tests/...`, `test_foo.py`, `foo_test.go`, `foo.test.ts`, `FooTest.java`).
+- Pravidlo sa musí týkať daného PR (rozsah pravidla, pozri `rules.md`):
+  - riadky v sekcii o release/publish, podmienené riadky („if applicable“, „if the user asks“) a odkazy na `/changelog/` stránky za pravidlo nepovažujeme;
+  - druh PR určíme z titulku (`feat`/Add… = feature, `fix`/Fix… = fix, docs, iné). Pravidlo „pre nové funkcie“ alebo „pre významné zmeny“ sa uplatní len na feature PR, pri zmienke o bugoch aj na fix PR. Docs-only PR sú `not_applicable`;
+  - pravidlo pre konkrétny jazyk („unit tests for new Python functions“) sa uplatní len ak PR mení súbory toho jazyka.
+- `complied` = PR zmenil aj aspoň jeden testový súbor (`tests/...`, `test_foo.py`, `foo_test.go`, `foo.test.ts`, `FooTest.java`, `Foo_Tests.cs`, `Foo.UnitTests/...`; lockfile v testovom priečinku sa nepočíta).
 - `violated` = PR zmenil kód a nezmenil žiadny test.
 
 Príklad:
@@ -79,7 +90,7 @@ Ako to kontrolujeme:
 - Pravidlo sa uplatní na každý PR, lebo každý PR má title. `not_applicable` tu teda nevzniká.
 - Text musí mať tvar `slovo(scope voliteľný)!voliteľný: popis` (regex `^[\w,-]+(\(.+\))?!?: .+`, na veľkosti písmen nezáleží).
 - Ako typ berieme ľubovoľné slovo, nielen `feat`/`fix`/..., pretože repá si pridávajú vlastné typy (napr. `k8s:`).
-- Úvodný tag v hranatých zátvorkách ignorujeme, takže `[alpha_factory] feat: ...` prejde.
+- Úvodný tag v hranatých zátvorkách a úvodné emoji ignorujeme, takže `[alpha_factory] feat: ...` aj `🐛 fix: ...` (emoji conventional commits) prejdú.
 - `complied` = sedí title alebo aspoň jeden commit (benevolentné).
 - `violated` = nesedí title ani žiadny commit.
 
@@ -131,7 +142,7 @@ Príklad (repo vyžaduje pnpm):
 ### Na čo dať pozor pri prezentácii
 
 - Checkery sú zámerne benevolentné. Radšej prehliadneme porušenie, než by sme si nejaké vymysleli.
-- Changelog a testy kontrolujeme hrubo. Pri changelogu niektoré repá chcú záznam len pri „significant“ alebo „breaking“ zmenách, my však rátame každú zmenu kódu. Pri testoch zase nevieme, či malá oprava test naozaj potrebovala. Tieto rates sú preto skôr horná hranica.
+- Changelog a testy: druh PR odhadujeme len z titulku, takže časť PR skončí ako `not_applicable` aj keď pravidlo platilo (napr. „Update docs…“ PR, ktorý mení aj kód). Po oprave checkerov je precision porušení ~80 % (pozri Validácia), nie 100 %.
 
 ## RQ1: Ako často agenti porušujú pravidlá z context file?
 
@@ -139,23 +150,23 @@ Violation rate = violated / (complied + violated). `repo_avg` je priemer per-rep
 
 | Pravidlo | PR | Repo | Violation rate | Repo-avg rate |
 |---|---:|---:|---:|---:|
-| changelog | 728 | 42 | 52 % | 61 % |
-| required_tests | 1 930 | 153 | 35 % | 35 % |
-| commit_format | 2 043 | 139 | 13 % | 20 % |
+| changelog | 514 | 31 | 38 % | 50 % |
+| required_tests | 1 050 | 125 | 25 % | 26 % |
+| commit_format | 2 043 | 139 | 12 % | 20 % |
 | package_manager | 267 | 61 | 9 % | 18 % |
 
-Jednoduché formálne pravidlá (conventional commits, package manager) agenti väčšinou dodržia. Pravidlá, ktoré znamenajú prácu navyše, teda pridať testy alebo doplniť changelog, porušujú často. Changelog vynechajú vo viac ako polovici prípadov.
+Jednoduché formálne pravidlá (conventional commits, package manager) agenti väčšinou dodržia. Pravidlá, ktoré znamenajú prácu navyše, teda pridať testy alebo doplniť changelog, porušujú často. Changelog vynechajú zhruba v každom treťom PR, kde ho pravidlo vyžaduje (v priemernom repe v polovici).
 
 ### Podľa agenta (repo-avg violation rate)
 
 | Pravidlo | Claude Code | Copilot | Cursor | Devin | Codex |
 |---|---:|---:|---:|---:|---:|
-| changelog | 54 % | 58 % | 86 % | 99 % | 42 % |
-| commit_format | 7 % | 34 % | 29 % | 31 % | 10 % |
+| changelog | 70 % | 48 % | 86 % | 98 % | 15 % |
+| commit_format | 5 % | 34 % | 29 % | 31 % | 10 % |
 | package_manager | 0 % | 26 % | 16 % | 0 % | 14 % |
-| required_tests | 22 % | 35 % | 51 % | 69 % | 46 % |
+| required_tests | 21 % | 23 % | 41 % | 80 % | 34 % |
 
-Claude Code má najnižšie rates pri všetkých pravidlách, Devin a Cursor najvyššie. Google Jules sme vynechali, lebo mal len 1 až 14 PR. Devin má navyše dáta len zo 4 až 7 repo, takže jeho čísla treba brať opatrne.
+Claude Code má najnižšie rates pri commit formáte, package manageri a testoch; pri changelogu je najlepší Codex (15 %), Claude Code tam má len 17 PR v 5 repo. Devin a Cursor majú najvyššie rates. Google Jules sme vynechali, lebo mal len 1 až 14 PR. Devin má navyše dáta len zo 4 až 7 repo, takže jeho čísla treba brať opatrne.
 
 ## RQ2: Dodržiavajú agenti pravidlo lepšie, keď je zapísané?
 
@@ -165,19 +176,19 @@ V tom istom repo porovnávame agent PR pred pridaním pravidla a po ňom. Repo m
 
 | Pravidlo | Repo | Medián bez pravidla | Medián s pravidlom | Zlepšené / horšie / bez zmeny | Wilcoxon p |
 |---|---:|---:|---:|---|---:|
-| commit_format | 16 | 28.6 % | 3.7 % | 10 / 4 / 2 | 0.056 |
-| required_tests | 16 | 43.5 % | 20.6 % | 9 / 6 / 1 | 0.047 |
+| commit_format | 16 | 28.2 % | 3.7 % | 9 / 5 / 2 | 0.096 |
+| required_tests | 11 | 33.3 % | 12.5 % | 6 / 2 / 3 | 0.109 |
 | package_manager | 7 | 0 % | 0 % | 3 / 1 / 3 | 0.625 |
 
 ### Regresia (conditional logit, v rámci repo)
 
 | Pravidlo | PR | Odds ratio | 95 % CI | p |
 |---|---:|---:|---|---:|
-| commit_format | 1 044 | 0.29 | 0.19–0.45 | <0.001 |
-| required_tests | 891 | 0.46 | 0.29–0.72 | 0.001 |
+| commit_format | 1 044 | 0.32 | 0.20–0.49 | <0.001 |
+| required_tests | 399 | 0.68 | 0.35–1.33 | 0.26 |
 | package_manager | 117 | 0.40 | 0.04–4.57 | 0.46 |
 
-Keď je pravidlo zapísané, šanca porušenia klesne asi o 71 % pri commit formáte a asi o 54 % pri testoch. Pri package manageri merateľný efekt nevidíme. Agenti ho dodržiavajú aj bez pravidla, pretože napodobňujú lockfile, ktorý už v repe je.
+Keď je pravidlo zapísané, šanca porušenia commit formátu klesne asi o 68 %. Pri testoch ide odhad tým istým smerom (−32 %), ale po oprave checkera už nie je štatisticky významný: zostalo len 11 repo a 399 PR (predtým 16 repo, OR 0.46, p = 0.001 – tento efekt bol z veľkej časti spôsobený falošnými porušeniami). Pri package manageri merateľný efekt nevidíme. Agenti ho dodržiavajú aj bez pravidla, pretože napodobňujú lockfile, ktorý už v repe je.
 
 ### Kontrola s ľuďmi (len commit_format, len PR title, difference-in-differences)
 
@@ -185,12 +196,12 @@ Keď je pravidlo zapísané, šanca porušenia klesne asi o 71 % pri commit form
 
 | | bez pravidla | s pravidlom |
 |---|---:|---:|
-| agent | 42 % (392) | 15 % (652) |
+| agent | 41 % (392) | 15 % (652) |
 | human | 3 % (107) | 16 % (44) |
 
-DiD interakcia `rule_active × agent` vyšla OR 0.058 (CI 0.012–0.284, p < 0.001). Agenti sa zlepšili výrazne viac ako ľudia, ktorí sa skôr zhoršili. Pokles teda nevysvetlí len to, že sa zmenil celý projekt.
+DiD interakcia `rule_active × agent` vyšla OR 0.067 (CI 0.014–0.324, p = 0.001). Agenti sa zlepšili výrazne viac ako ľudia, ktorí sa skôr zhoršili. Pokles teda nevysvetlí len to, že sa zmenil celý projekt.
 
-Pri commit formáte a testoch máme dobrý dôkaz, že agenti na zapísané pravidlo reagujú. Pri package manageri nie: pravidlo je pre agentov zbytočné, lebo to robia správne aj bez neho.
+Pri commit formáte máme dobrý dôkaz, že agenti na zapísané pravidlo reagujú. Pri testoch je efekt naznačený, ale nepreukázaný. Pri package manageri nie: pravidlo je pre agentov zbytočné, lebo to robia správne aj bez neho.
 
 ## RQ3: Čo sa stane s PR, ktoré porušia pravidlo?
 
@@ -202,23 +213,23 @@ Copilot, Devin, Cursor a Jules commitujú pod vlastným bot účtom. Ich commity
 
 | Pravidlo | Nástroje | Rejected | Fixed, potom merged | Merged as is | Open | PR |
 |---|---|---:|---:|---:|---:|---:|
-| changelog | bot (Copilot/Devin/Cursor) | 33 % | 7 % | 35 % | 26 % | 307 |
-| changelog | Claude Code/Codex | 27 % | – | 57 % | 17 % | 90 |
-| commit_format | bot | 48 % | 7 % | 30 % | 14 % | 250 |
-| commit_format | Claude Code/Codex | 49 % | – | 51 % | 0 % | 43 |
-| required_tests | bot | 32 % | 10 % | 42 % | 16 % | 592 |
-| required_tests | Claude Code/Codex | 19 % | – | 72 % | 8 % | 144 |
+| changelog | bot (Copilot/Devin/Cursor) | 30 % | 8 % | 30 % | 32 % | 199 |
+| changelog | Claude Code/Codex | 33 % | – | 47 % | 20 % | 15 |
+| commit_format | bot | 48 % | 8 % | 29 % | 14 % | 250 |
+| commit_format | Claude Code/Codex | 49 % | – | 51 % | 0 % | 39 |
+| required_tests | bot | 31 % | 11 % | 42 % | 16 % | 235 |
+| required_tests | Claude Code/Codex | 25 % | – | 66 % | 8 % | 59 |
 | package_manager | všetky | 50 % | 0 % | 35 % | 13 % | 23 |
 
-Človek opraví porušenie pred merge len v 7 až 10 % prípadov. Oveľa častejšie sa PR buď zamietne, alebo sa zmerguje aj s porušením.
+Človek opraví porušenie pred merge len v 8 až 11 % prípadov. Oveľa častejšie sa PR buď zamietne, alebo sa zmerguje aj s porušením.
 
 ### Mergujú sa porušujúce PR menej? (iba zatvorené PR, conditional logit v rámci repo)
 
 | Pravidlo | PR | Repo | Merge rate complied | Merge rate violated | Odds ratio | 95 % CI | p |
 |---|---:|---:|---:|---:|---:|---|---:|
-| commit_format | 1 848 | 135 | 79 % | 44 % | 0.20 | 0.14–0.29 | <0.001 |
-| changelog | 576 | 38 | 89 % | 59 % | 0.28 | 0.14–0.55 | <0.001 |
-| required_tests | 1 524 | 140 | 71 % | 66 % | 0.97 | 0.71–1.32 | 0.84 |
+| commit_format | 1 848 | 135 | 79 % | 45 % | 0.19 | 0.13–0.28 | <0.001 |
+| changelog | 410 | 28 | 90 % | 56 % | 0.34 | 0.15–0.76 | 0.009 |
+| required_tests | 803 | 110 | 75 % | 65 % | 0.90 | 0.55–1.47 | 0.67 |
 | package_manager | 152 | 46 | 65 % | 40 % | 0.15 | 0.02–1.42 | 0.10 |
 
 PR, ktoré porušia commit formát alebo changelog, sa zmergujú výrazne menej často. Chýbajúce testy na merge vplyv nemajú. Ide však o koreláciu: PR s nekonvenčným názvom môžu byť horšie aj inak, napríklad nedokončené. Prázdne PR, v ktorých agent nezmenil žiadny súbor, to nevysvetľujú, lebo medzi porušeniami je ich len 8.
@@ -227,19 +238,54 @@ PR, ktoré porušia commit formát alebo changelog, sa zmergujú výrazne menej 
 
 | Pravidlo | Má ľudský feedback | Človek spomenul pravidlo | Bot spomenul |
 |---|---:|---:|---:|
-| changelog | 44 % | 1 % | 3 % |
-| commit_format | 35 % | 2 % | 9 % |
-| required_tests | 43 % | 1 % | 8 % |
+| changelog | 59 % | 3 % | 3 % |
+| commit_format | 35 % | 2 % | 8 % |
+| required_tests | 47 % | 3 % | 7 % |
 | package_manager | 35 % | 20 % (4 PR) | 35 % |
 
 Feedback sú reviews, bežné komentáre a inline komentáre ku kódu od účtov s `user_type == User`. Nerátame autora PR ani samotného agenta. Či komentár spomína pravidlo, zisťujeme keyword regexom, ktorý je dosť hrubý. Z vypísaných ukážok sedí pri testoch asi 6 z 9, pri commit formáte väčšina a pri package manageri asi 3 zo 6.
 
-Ľudia porušenie v review takmer nikdy nespomenú (1 až 2 % PR). Pri commit formáte a changelogu sa porušenie aj tak prejaví nižšou mierou merge, chýbajúce testy však prechádzajú bez rozdielu. Keď už sa porušujúci PR zmerguje, väčšinou aj s porušením. Opravu človekom vidíme len v 7 až 10 % prípadov.
+Ľudia porušenie v review takmer nikdy nespomenú (2 až 3 % PR). Pri commit formáte a changelogu sa porušenie aj tak prejaví nižšou mierou merge, chýbajúce testy však prechádzajú bez rozdielu. Keď už sa porušujúci PR zmerguje, väčšinou aj s porušením. Opravu človekom vidíme len v 8 až 11 % prípadov.
+
+## Validácia (ručná kontrola)
+
+**Package manager, všetkých 23 porušení** (`package_manager_violations.csv`, overené cez git históriu PR): 19 správnych, 3 nesprávne, 1 nejasné → **precision 86 %** (19/22).
+- Chyby: lockfile v npm podprojekte, ktorý npm používa legitímne (typespec); lockfile prišiel z merge `main`, nie od agenta (azure-sdk-for-js); PR mal za úlohu migráciu Yarn→pnpm (democracy-client).
+- V 8 z 19 správnych prípadov agent (alebo človek) lockfile neskôr zmazal, takže vo finálnom diffe nie je. Porušenie prvej verzie od agenta je však reálne.
+
+**Náhodná vzorka 100 párov** (`validation_sample.csv`, seed 0; pre commit format, tests a changelog po 20 `violated` + 10 `complied`, plus 10 `complied` pre package manager):
+
+| Pravidlo | Detekcia pravidla správna | `violated` správne | `complied` správne |
+|---|---|---|---|
+| commit_format | 30/30 | 19/20 | 10/10 |
+| required_tests | 26/30 | 6/19 (+1 nejasné) | 9/10 |
+| changelog | 22/30 | 7/19 (+1 nejasné) | 10/10 |
+| package_manager | 9/10 | – | 10/10 |
+
+Hlavné zistenie: **violation rates pre required_tests a changelog sú výrazne nadhodnotené** (precision porušení ~30–35 %). Dôvody:
+- Pravidlo má rozsah, ktorý checker ignoruje: „testy pre *nové funkcie*“ (PR je bugfix/refactor/docstring), „changelog pre *významné* zmeny“, „len keď sa mení súbor X“.
+- Regex chytí riadky, ktoré nie sú per-PR pravidlo: kroky release procesu („Publish a New Release → Update CHANGELOG.md“), podmienky („if the user asks…“), umiestnenie testov („write test in same directory with `.spec.tsx`“), pravidlá len pre iný jazyk („unit tests for new Python functions“ pri TS PR).
+- Changelog v README.md (ioBroker) checker nevidí.
+- Commit format: jediná chyba je emoji conventional commits (`🐛 fix:`), ktoré regex odmietne.
+
+Tabuľka vyššie platí pre **pôvodné** checkery.
+
+### Po oprave checkerov
+
+Checkery pre tests a changelog sme sprísnili podľa zistení vyššie (pravidlá v `rules.md`, sekcia „Scope of tests and changelog rules“). Všetky čísla RQ1–RQ3 v tomto dokumente sú už s novými checkermi.
+
+Overenie na **novej** vzorke 15 + 15 porušení (`validation_sample_v2.csv`, seed 1, žiadny PR z prvej vzorky):
+
+| Pravidlo | `violated` správne – checker v1 | `violated` správne – finálny checker |
+|---|---|---|
+| required_tests | 8/13 (62 %), 2 nejasné | 8/10 (80 %) |
+| changelog | 10/14 (71 %), 1 nejasné | 10/12 (83 %) |
+
+Checker v1 = po prvom kole opráv (podľa prvej vzorky); na novej vzorke sme našli ešte 3 všeobecné chyby (test súbory `Foo_Tests.cs` / `Foo.UnitTests/`, odkazy na `/changelog/` stránky, PR „Document …“) a opravili ich. Čísla 80 % / 83 % sú preto mierne optimistické, nestranný odhad by chcel ďalšiu novú vzorku. Na prvej vzorke finálny checker: tests 5/6, changelog 5/6 správnych porušení; commit_format 19/19 (emoji chyba opravená).
 
 ## Čo ešte chýba a limity
 
-- `package_manager_violations.csv`: ručná validácia nie je vyplnená.
-- Precision regexov na detekciu pravidiel nie je zmeraná, robili sme len vizuálnu kontrolu v sekcii 5 `fetch_data.ipynb`.
+- Validácia je na malej vzorke (100 + 23 párov) a labely navrhol Claude; treba ich prejsť človekom (ideálne dvaja anotátori kvôli inter-rater agreement).
 - Effective rule set určujeme podľa dátumu, nie podľa base SHA.
 - Kontrola s ľuďmi v RQ2 má málo dát (151 PR, 5 repo).
 - RQ3: opravu človekom vidíme len pri bot nástrojoch. PR title je finálny, takže premenovanie nevidíme. Precision mention regexov nie je zmeraná.

@@ -20,13 +20,17 @@ Label for each pair:
 | Applies to | every PR |
 | Violated if | PR title (or any agent commit message) does not match `^(feat\|fix\|docs\|style\|refactor\|perf\|test\|build\|ci\|chore\|revert)(\(.+\))?!?: .+` |
 
+The checker accepts any type word (`^[\w,-]+(\(.+\))?!?: .+`, repos add their own types) after dropping a leading `[tag]` and a leading emoji (`🐛 fix: ...`, emoji conventional commits).
+
 ## 2. Required tests
 
 | | |
 |---|---|
 | Rule says | "add / write tests for new code" |
-| Applies to | PRs that change source files (not only docs/config) |
-| Violated if | no test file changed (`test_*`, `*_test.*`, `*.test.*`, `*.spec.*`, files under `test/`, `tests/`, `__tests__/`) |
+| Applies to | PRs that change source files (not only docs/config) **and** fall in the rule's scope (see below) |
+| Violated if | no test file changed (`test_*`, `*_test.*`, `*.test.*`, `*.spec.*`, `*_Tests.cs`, files under `test/`, `tests/`, `__tests__/`, `Foo.UnitTests/`; lockfiles never count) |
+
+---
 
 ## 3. Package manager
 
@@ -41,8 +45,30 @@ Label for each pair:
 | | |
 |---|---|
 | Rule says | "update CHANGELOG" |
-| Applies to | PRs that change source files |
-| Violated if | no `CHANGELOG*` file changed |
+| Applies to | PRs that change source files **and** fall in the rule's scope (see below) |
+| Violated if | no `CHANGELOG*` / `.changeset/` file changed (or `README.md`, when the rule says the changelog lives there) |
+
+---
+
+## Scope of tests and changelog rules
+
+Added after hand validation showed most "violations" of these two rules were false (see `RESULTS.md`).
+
+**Lines that do not count as a rule** (rule is then not detected for that file):
+- under a heading about releasing / publishing / deploying (release procedure, not a per-PR rule)
+- conditional or optional: "if the user asks", "if applicable", "when appropriate", "consider", "for doc changes"
+- about *where* tests go ("same directory", "named", "located"), not *that* they are needed
+- about the PR description's changelog section, or links to `/changelog/` pages
+
+**PR kind** comes from the title: Conventional Commit type (`feat` = feature, `fix` = fix, `docs` = docs, others = other), else docs words (docs, docstring, JSDoc, documentation, typo, README, "Document …"), else the first word (Fix…, Refactor/Update/Remove…, Add/Implement/Support…). Anything else is `unknown`.
+
+**A rule sentence covers a PR when:**
+- the PR is not docs-only, and
+- if it names a language ("tests for new Python functions"), the PR changes files of that language, and
+- if it is limited to new things ("new features / functionality / endpoints", "significant", "user-facing"), the PR is a feature (or a fix, when the sentence also mentions bugs/fixes), and
+- (changelog) if it says "whenever `file.py` is modified", that file changed.
+
+If no sentence covers the PR, the label is `not_applicable`. Unclear cases (e.g. `unknown` kind under a "new features" rule) are `not_applicable`, in line with the lenient design.
 
 ---
 
