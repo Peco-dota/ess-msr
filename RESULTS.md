@@ -5,16 +5,16 @@
 | Čo | Kde |
 |---|---|
 | Návrh štúdie (RQ1–RQ4) | `../project-details.md` |
-| Definície pravidiel a labelov | `rules.md` |
+| Ako vzniká dataset, definície pravidiel, metódy RQ1–RQ3 | `README.md` |
 | Načítanie a príprava dát (AIDev, GHAgentFiles) | `src/ess_msr/data.py` |
 | Detekcia pravidiel + checkery | `src/ess_msr/rules.py` |
 | RQ1 analýza | `src/ess_msr/rq1.ipynb` |
 | RQ2 analýza | `src/ess_msr/rq2.ipynb` |
 | RQ3 analýza | `src/ess_msr/rq3.ipynb` |
 | Kontrola regexov + export package-manager porušení | `src/ess_msr/validation.ipynb` |
-| Ručná kontrola package-manager porušení | `package_manager_violations.csv` (23 riadkov, vyplnené `correct` + `note`) |
-| Ručná validácia 100 párov (PR, pravidlo) | `validation_sample.csv` (`rule_correct`, `label_correct`, `note`) |
-| Overenie opravených checkerov (30 nových porušení) | `validation_sample_v2.csv` (`label_final` = label finálneho checkera) |
+| Ručná kontrola package-manager porušení | `validation/package_manager_violations.csv` (23 riadkov, vyplnené `correct` + `note`) |
+| Ručná validácia 100 párov (PR, pravidlo) | `validation/validation_sample.csv` (`rule_correct`, `label_correct`, `note`) |
+| Overenie opravených checkerov (30 nových porušení) | `validation/validation_sample_v2.csv` (`label_final` = label finálneho checkera) |
 | Dáta GHAgentFiles | `instruction-data/` (AIDev sa ťahá z Hugging Face) |
 
 ## Dáta
@@ -38,7 +38,7 @@ Takto to znie v AGENTS.md / CLAUDE.md (reálne citáty z dát):
 
 Ako to kontrolujeme:
 - Pravidlo sa uplatní iba na PR, ktoré zmenili zdrojový kód (`.py`, `.ts`, `.java`, ...). PR, ktoré menia len dokumentáciu, dostanú `not_applicable`.
-- Pravidlo sa musí týkať daného PR (rozsah pravidla, pozri `rules.md`):
+- Pravidlo sa musí týkať daného PR (rozsah pravidla, pozri `README.md` §2):
   - riadky v sekcii o release/publish, podmienené riadky („if applicable“, „if the user asks“) a odkazy na `/changelog/` stránky za pravidlo nepovažujeme;
   - druh PR určíme z titulku (`feat`/Add… = feature, `fix`/Fix… = fix, docs, iné). Pravidlo „pre nové funkcie“ alebo „pre významné zmeny“ sa uplatní len na feature PR, pri zmienke o bugoch aj na fix PR. Docs-only PR sú `not_applicable`;
   - pravidlo pre konkrétny jazyk („unit tests for new Python functions“) sa uplatní len ak PR mení súbory toho jazyka.
@@ -64,7 +64,7 @@ Takto to znie v context file (reálne citáty):
 
 Ako to kontrolujeme:
 - Uplatní sa iba na PR, ktoré zmenili zdrojový kód.
-- Pravidlo sa musí týkať daného PR (rozsah pravidla, pozri `rules.md`):
+- Pravidlo sa musí týkať daného PR (rozsah pravidla, pozri `README.md` §2):
   - riadky v sekcii o release/publish, podmienené riadky („if applicable“, „if the user asks“) a odkazy na `/changelog/` stránky za pravidlo nepovažujeme;
   - druh PR určíme z titulku (`feat`/Add… = feature, `fix`/Fix… = fix, docs, iné). Pravidlo „pre nové funkcie“ alebo „pre významné zmeny“ sa uplatní len na feature PR, pri zmienke o bugoch aj na fix PR. Docs-only PR sú `not_applicable`;
   - pravidlo pre konkrétny jazyk („unit tests for new Python functions“) sa uplatní len ak PR mení súbory toho jazyka.
@@ -275,7 +275,7 @@ Tabuľka vyššie platí pre **pôvodné** checkery.
 
 ### Po oprave checkerov
 
-Checkery pre tests a changelog sme sprísnili podľa zistení vyššie (pravidlá v `rules.md`, sekcia „Scope of tests and changelog rules“). Všetky čísla RQ1–RQ3 v tomto dokumente sú už s novými checkermi.
+Checkery pre tests a changelog sme sprísnili podľa zistení vyššie (pravidlá v `README.md` §2). Všetky čísla RQ1–RQ3 v tomto dokumente sú už s novými checkermi.
 
 Overenie na **novej** vzorke 15 + 15 porušení (`validation_sample_v2.csv`, seed 1, žiadny PR z prvej vzorky):
 

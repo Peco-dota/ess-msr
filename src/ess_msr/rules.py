@@ -1,4 +1,4 @@
-"""Which rules a context file states, and whether a PR complied with them (see `rules.md`).
+"""Which rules a context file states, and whether a PR complied with them (see `README.md` §2).
 
 Each checker gets one (PR, rule) row and returns `not_applicable`, `complied` or `violated`.
 Checkers are lenient on purpose: we would rather miss a violation than invent one.

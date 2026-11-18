@@ -34,6 +34,13 @@ def context_history():
     return {repo: group for repo, group in changes.groupby("repo")}
 
 
+@cache
+def crawled_until():
+    """repo -> last commit GHAgentFiles saw. After it the context-file state is unknown (matters for P2)."""
+    repos = pd.read_csv(CONTEXT_DATA / "repositories.csv", usecols=["name", "lastCommit"])
+    return dict(zip(repos.name.str.lower(), pd.to_datetime(repos.lastCommit, utc=True)))
+
+
 def context_files_at(repo, when):
     """Hashes of the latest version of each context file in `repo` committed before `when`."""
     history = context_history().get(repo)
