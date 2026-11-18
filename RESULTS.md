@@ -6,9 +6,12 @@
 |---|---|
 | Návrh štúdie (RQ1–RQ4) | `../project-details.md` |
 | Definície pravidiel a labelov | `rules.md` |
-| RQ1 pipeline + výsledky | `src/ess_msr/fetch_data.ipynb` (sekcie 1–9) |
-| RQ2 analýza | `src/ess_msr/rq2.ipynb` (reuse RQ1 pipeline, sekcie 1–8) |
-| RQ3 analýza | `src/ess_msr/rq3.ipynb` (reuse RQ1 pipeline, sekcie 1–7) |
+| Načítanie a príprava dát (AIDev, GHAgentFiles) | `src/ess_msr/data.py` |
+| Detekcia pravidiel + checkery | `src/ess_msr/rules.py` |
+| RQ1 analýza | `src/ess_msr/rq1.ipynb` |
+| RQ2 analýza | `src/ess_msr/rq2.ipynb` |
+| RQ3 analýza | `src/ess_msr/rq3.ipynb` |
+| Kontrola regexov + export package-manager porušení | `src/ess_msr/validation.ipynb` |
 | Ručná kontrola package-manager porušení | `package_manager_violations.csv` (23 riadkov, vyplnené `correct` + `note`) |
 | Ručná validácia 100 párov (PR, pravidlo) | `validation_sample.csv` (`rule_correct`, `label_correct`, `note`) |
 | Overenie opravených checkerov (30 nových porušení) | `validation_sample_v2.csv` (`label_final` = label finálneho checkera) |
